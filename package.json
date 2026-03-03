@@ -9,7 +9,8 @@
   },
   "files": [
     "bin",
-    "template"
+    "template",
+    "template-ssr"
   ],
   "scripts": {
     "postversion": "git push && git push origin v$(node -p \"require('./package.json').version\")"

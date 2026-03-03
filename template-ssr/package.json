@@ -1,0 +1,23 @@
+{
+  "name": "my-granular-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "build": "npm run build:client && npm run build:server",
+    "build:client": "vite build --outDir dist/client",
+    "build:server": "vite build --outDir dist/server --ssr src/entry-server.js",
+    "serve": "NODE_ENV=production node server.js",
+    "preview": "npm run build && npm run serve"
+  },
+  "dependencies": {
+    "@granularjs/core": "latest",
+    "@granularjs/ui": "latest",
+    "express": "^5.1.0",
+    "sirv": "^3.0.1"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

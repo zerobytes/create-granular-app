@@ -62,28 +62,59 @@ function updatePackageJson(projectPath, projectName) {
   fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 }
 
+function parseArgs(argv) {
+  const flags = {};
+  let projectName = null;
+  for (const arg of argv) {
+    if (arg.startsWith('--')) {
+      const [key, val] = arg.slice(2).split('=');
+      flags[key] = val ?? true;
+    } else if (!projectName) {
+      projectName = arg;
+    }
+  }
+  return { projectName, flags };
+}
+
 async function main() {
   printBanner();
-  
-  const args = process.argv.slice(2);
-  let projectName = args[0];
-  
+
+  const { projectName: rawName, flags } = parseArgs(process.argv.slice(2));
+  const useSSR = !!flags.ssr;
+  let projectName = rawName;
+
+  if (flags.help) {
+    console.log(`  Usage: create-granular-app [project-name] [options]\n`);
+    console.log(`  Options:`);
+    console.log(`    --ssr     Scaffold an SSR-ready app (Express + Vite SSR)`);
+    console.log(`    --help    Show this help message\n`);
+    process.exit(0);
+  }
+
   if (!projectName) {
     projectName = 'my-granular-app';
     log.warn(`No project name specified, using "${projectName}"`);
   }
-  
+
   const projectPath = path.resolve(process.cwd(), projectName);
-  
+
   if (fs.existsSync(projectPath)) {
     log.error(`Error: Directory "${projectName}" already exists.`);
     process.exit(1);
   }
-  
-  log.info(`\nCreating a new Granular app in ${COLORS.bold}${projectPath}${COLORS.reset}\n`);
-  
-  const templateDir = path.join(__dirname, '..', 'template');
-  
+
+  const templateName = useSSR ? 'template-ssr' : 'template';
+  const label = useSSR ? 'SSR' : 'SPA';
+
+  log.info(`\nCreating a new Granular ${label} app in ${COLORS.bold}${projectPath}${COLORS.reset}\n`);
+
+  const templateDir = path.join(__dirname, '..', templateName);
+
+  if (!fs.existsSync(templateDir)) {
+    log.error(`Error: Template "${templateName}" not found.`);
+    process.exit(1);
+  }
+
   log.step('Copying template files...');
   copyDir(templateDir, projectPath);
 
@@ -94,23 +125,29 @@ async function main() {
 
   log.step('Updating package.json...');
   updatePackageJson(projectPath, projectName);
-  
+
   log.step('Installing dependencies...');
   try {
-    execSync('npm install', { 
-      cwd: projectPath, 
-      stdio: 'inherit' 
+    execSync('npm install', {
+      cwd: projectPath,
+      stdio: 'inherit'
     });
   } catch (e) {
     log.warn('\nCould not install dependencies automatically.');
     log.warn('Please run "npm install" manually in the project directory.\n');
   }
-  
-  log.success('\nSuccess! Your Granular app is ready.\n');
-  
+
+  log.success(`\nSuccess! Your Granular ${label} app is ready.\n`);
+
   console.log(`  ${COLORS.bold}cd ${projectName}${COLORS.reset}`);
   console.log(`  ${COLORS.bold}npm run dev${COLORS.reset}\n`);
-  
+
+  if (useSSR) {
+    console.log(`${COLORS.dim}  Dev server runs on http://localhost:3000 with SSR.`);
+    console.log(`  Build for production: npm run build`);
+    console.log(`  Run production server: npm run serve${COLORS.reset}\n`);
+  }
+
   console.log(`${COLORS.dim}  Happy coding with Granular!${COLORS.reset}\n`);
 }
 
